@@ -1,6 +1,6 @@
 import { Knex } from "knex";
 // Update with your config settings.
-const config: { [key: string]: Knex.Config } = {
+const configs: { [key: string]: Knex.Config } = {
   development: {
     client: "mysql",
     connection: {
@@ -8,7 +8,7 @@ const config: { [key: string]: Knex.Config } = {
       port: 3306,
       user: "root",
       password: "root",
-      database: "assessment",
+      database: "accounttask",
     },
   },
 
@@ -47,4 +47,4 @@ const config: { [key: string]: Knex.Config } = {
   },
 };
 
-module.exports = config;
+export default configs;

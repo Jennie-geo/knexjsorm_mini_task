@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // Update with your config settings.
-const config = {
+const configs = {
     development: {
         client: "mysql",
         connection: {
@@ -9,7 +9,7 @@ const config = {
             port: 3306,
             user: "root",
             password: "root",
-            database: "assessment",
+            database: "accounttask",
         },
     },
     staging: {
@@ -45,5 +45,5 @@ const config = {
         },
     },
 };
-module.exports = config;
+exports.default = configs;
 //# sourceMappingURL=knexfile.js.map
