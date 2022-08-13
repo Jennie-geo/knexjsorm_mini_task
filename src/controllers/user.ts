@@ -90,68 +90,33 @@ export async function loginUser(req: Request, res: Response) {
   }
 }
 
-// export async function loginUser(req: Request, res: Response) {
-//     try {
-//       const user = db.select("email").from('users').where("email", req.body.email);
-//       if (!user) {
-//         return res
-//           .status(400)
-//           .json({ success: false, errorMessage: "No email found", data: [] });
-//       }
-//       const matchPasswd = await bcrypt.compare(req.body.password, user.password);
-//       if (!matchPasswd) {
-//         return res
-//           .status(400)
-//           .json({ success: false, errorMessage: "Password does not match" });
-//       } else {
-//         const token = jwt.sign(
-//           { userId: user.id },
-//           process.env.JWT_SECRET as string,
-//           {
-//             expiresIn: "365d",
-//           }
-//         );
-//         //res.cookie('Authorization', token, { httpOnly: true });
-//         res.setHeader("Authorization", token);
-//         return res.status(200).json({
-//           success: true,
-//           message: "Auth successful",
-//           token: token,
-//         });
-//       }
-//     } catch (error: any) {
-//       return res
-//         .status(500)
-//         .json({ success: false, errorMessage: error.message });
-//     }
-//   }
-
 export async function addMoneyToAcct(req: CustomRequest, res: Response) {
   try {
-    console.log(">>>>userinfo");
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorize." });
     }
     const user = req.user;
-    console.log(">>>>userinfo", user);
     const { amountToSend, accountNumber } = req.body;
-    const userInfo = await db.from("users").first("id", user);
+    const userInfo = await db.from("users").where("id", user.id).first();
     if (!userInfo) {
       return res
         .status(400)
         .json({ success: false, errorMessage: "User account doesn't exist" });
     }
-    console.log(">>>>userinfo", userInfo);
+    console.log(">>>>userinfoooooo", userInfo);
     const sendMoney = await db("accounts").insert({
+      id: uuidv4(),
       amount: amountToSend,
       senderId: user.id,
-      balance: userInfo.balance + amountToSend,
-      account_number: userInfo.account_number,
+      userId: user.id,
+      //balance: userInfo.balance + amountToSend,
+      // account_number: userInfo.account_number,
     });
-    await db("users").update({
-      id: user.id,
-      balance: userInfo.balance + amountToSend,
-    });
+    await db("users")
+      .first("id", user.id)
+      .update({
+        balance: userInfo.balance + amountToSend,
+      });
 
     return res.status(200).json({
       success: true,
@@ -159,6 +124,7 @@ export async function addMoneyToAcct(req: CustomRequest, res: Response) {
       data: sendMoney,
     });
   } catch (error: any) {
+    console.log(error);
     return res
       .status(500)
       .json({ success: false, errorMessage: error.message });
@@ -252,13 +218,11 @@ export async function withdrawAmount(req: CustomRequest, res: Response) {
       account_number: accountNumber,
     });
     if (!acctInfo) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          errorMessage:
-            "Either the account number doesn't exist/it doesn't belong to you.",
-        });
+      return res.status(400).json({
+        success: false,
+        errorMessage:
+          "Either the account number doesn't exist/it doesn't belong to you.",
+      });
     }
     if (acctInfo.balance < amount) {
       return res

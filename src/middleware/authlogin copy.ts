@@ -37,7 +37,8 @@ export function authlogin(
         iat: number;
         exp: number;
       };
-      const user = await db.from("users").first("id", userId);
+
+      const user = await db("users").where("id", userId).first();
       if (!user) {
         return res.send({ login: `No User exists with this ${userId}` });
       }
