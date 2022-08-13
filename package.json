@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon ./src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "knex": "./node_modules/.bin/knex --knexfile src/database/knexfile.ts"
   },
@@ -11,18 +12,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.0.1",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.1",
+    "express": "^4.18.1",
     "http-errors": "^2.0.0",
+    "jsonwebtoken": "^8.5.1",
     "knex": "^2.2.0",
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
     "@types/cookie-parser": "^1.4.3",
     "@types/debug": "^4.1.7",
     "@types/http-errors": "^1.8.2",
+    "@types/jsonwebtoken": "^8.5.8",
     "@types/morgan": "^1.9.3",
     "@types/mysql": "^2.15.21",
     "@types/node": "^18.7.1",
