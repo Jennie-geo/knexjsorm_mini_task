@@ -3,6 +3,20 @@ import db from "../database/db";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
+import { CustomRequest } from "../middleware/authlogin copy";
+require("dotenv").config();
+
+const userDetail = {
+  id: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  account_number: "",
+  balance: 0,
+  created_at: "",
+  updated_at: "",
+};
 
 export async function createUser(req: Request, res: Response) {
   try {
@@ -26,65 +40,50 @@ export async function createUser(req: Request, res: Response) {
   }
 }
 
-// export async function createUser(req: Request, res: Response) {
-//   const accountNum = Math.floor(100000 + Math.random() * 90000000000);
-//   console.log("acct", accountNum);
-//   const hashPasswd = await bcrypt.hash(req.body.password, 8);
-//   const user = db
-//     .insert({
-//       first_name: req.body.name,
-//       last_name: req.body.lastName,
-//       email: req.body.email,
-//       password: hashPasswd,
-//       account_number: accountNum,
-//     })
-//     .into("users")
-//     .catch((error) => {
-//       console.error(error);
-//       return res
-//         .status(400)
-//         .json({ success: false, errorMessage: error.message });
-//     })
-//     .then((user) => {
-//       return res.status(200).json({
-//         success: true,
-//         message: "User signup successfully",
-//         data: user,
-//       });
-//     });
-// }
 export async function loginUser(req: Request, res: Response) {
   try {
-    const user = db.from("users").where("email", req.body.email);
+    const user = await db.from("users").where({ email: req.body.email });
     if (!user) {
       return res
         .status(400)
         .json({ success: false, errorMessage: "No email found", data: [] });
     }
-    console.log(">>>>>", user);
-    res.send(user);
-    // const matchPasswd = await bcrypt.compare(req.body.password, user.password);
-    // if (!matchPasswd) {
-    //   return res
-    //     .status(400)
-    //     .json({ success: false, errorMessage: "Password does not match" });
-    // } else {
-    //   const token = jwt.sign(
-    //     { userId: user.id },
-    //     process.env.JWT_SECRET as string,
-    //     {
-    //       expiresIn: "365d",
-    //     }
-    //   );
-    //   //res.cookie('Authorization', token, { httpOnly: true });
-    //   res.setHeader("Authorization", token);
-    //   return res.status(200).json({
-    //     success: true,
-    //     message: "Auth successful",
-    //     token: token,
-    //   });
-    // }
+    user.forEach((data) => {
+      userDetail.id = data.id;
+      userDetail.firstName = data.first_name;
+      userDetail.lastName = data.last_name;
+      userDetail.email = data.email;
+      userDetail.password = data.password;
+      userDetail.account_number = data.account_number;
+      userDetail.balance = data.balance;
+      userDetail.created_at = data.created_at;
+      userDetail.updated_at = data.updated_at;
+    });
+    const matchPasswd = await bcrypt.compare(
+      req.body.password,
+      userDetail.password
+    );
+    if (!matchPasswd) {
+      return res
+        .status(400)
+        .json({ success: false, errorMessage: "Password does not match" });
+    } else {
+      const token = jwt.sign(
+        { userId: userDetail.id },
+        process.env.JWT_SECRET as string,
+        {
+          expiresIn: "365d",
+        }
+      );
+      res.setHeader("Authorization", token);
+      return res.status(200).json({
+        success: true,
+        message: "Auth successful",
+        token: token,
+      });
+    }
   } catch (error: any) {
+    console.log("ERROR", error);
     return res
       .status(500)
       .json({ success: false, errorMessage: error.message });
@@ -127,34 +126,47 @@ export async function loginUser(req: Request, res: Response) {
 //     }
 //   }
 
-// export async function addMoneyToAcct1(req: Request, res: Response) {
-//     try {
-//       const user = await db('users').select().where(req.user);
-//       if(!user) {
-//           return res.send('No user found')
-//       }
-//       const {amountToSend, accountNumber} = req.body;
+export async function addMoneyToAcct(req: CustomRequest, res: Response) {
+  try {
+    console.log(">>>>userinfo");
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorize." });
+    }
+    const user = req.user;
+    console.log(">>>>userinfo", user);
+    const { amountToSend, accountNumber } = req.body;
+    const userInfo = await db("users").first({
+      id: user.id,
+      account_number: accountNumber,
+    });
+    if (!userInfo) {
+      return res
+        .status(400)
+        .json({ success: false, errorMessage: "User account doesn't exist" });
+    }
+    console.log(">>>>userinfo", userInfo);
+    const sendMoney = await db("accounts").insert({
+      amount: amountToSend,
+      senderId: user.id,
+      balance: userInfo.balance + amountToSend,
+      account_number: userInfo.account_number,
+    });
+    await db("users").update({
+      id: user.id,
+      balance: userInfo.balance + amountToSend,
+    });
 
-//       const userInfo = await db('users').where({'id': user.id, 'account_number': accountNumber });
-//       if(!userInfo) {
-//           return res.status(400).json({success: false, errorMessage: "User account doesn't exist"})
-//       }
-//       console.log('>>>>userinfo', userInfo)
-//       const sendMoney = await db('users').insert(
-//           {
-//             amount: amountToSend,
-//             senderId: user.id,
-//             balance:   userInfo.balance + amountToSend,
-//             sender_name: `${user.first_name} ${user.last_name}`,
-//             account_number: userInfo.account_number
-//         });
-//         return res.status(200).json({ success: true, message: `An amount of ${amountToSend} has been sent successfully`, data: sendMoney })
-//     }catch(error: any) {
-//         return res
-//       .status(500)
-//       .json({ success: false, errorMessage: error.message });
-//     }
-// }
+    return res.status(200).json({
+      success: true,
+      message: `An amount of ${amountToSend} has been sent successfully`,
+      data: sendMoney,
+    });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, errorMessage: error.message });
+  }
+}
 
 // export async function addMoneyToAcct(req: Request, res: Response) {
 //     try {
