@@ -103,26 +103,31 @@ export async function addMoneyToAcct(req: CustomRequest, res: Response) {
         .status(400)
         .json({ success: false, errorMessage: "User account doesn't exist" });
     }
-    console.log(">>>>userinfoooooo", userInfo);
-    const sendMoney = await db("accounts").insert({
-      id: uuidv4(),
-      amount: amountToSend,
-      senderId: user.id,
-      userId: user.id,
-      //balance: userInfo.balance + amountToSend,
-      // account_number: userInfo.account_number,
-    });
-    await db("users")
-      .first("id", user.id)
-      .update({
-        balance: userInfo.balance + amountToSend,
-      });
 
-    return res.status(200).json({
-      success: true,
-      message: `An amount of ${amountToSend} has been sent successfully`,
-      data: sendMoney,
-    });
+    if (userInfo.account_number !== accountNumber) {
+      return res.status(400).json({
+        success: false,
+        errorMessage: "The account number does not match",
+      });
+    } else {
+      const sendMoney = await db("accounts").insert({
+        id: uuidv4(),
+        amount: amountToSend,
+        senderId: userInfo.id,
+        userId: userInfo.id,
+      });
+      await db("users")
+        .where("id", userInfo.id)
+        .update({
+          balance: userInfo.balance + amountToSend,
+        });
+
+      return res.status(200).json({
+        success: true,
+        message: `An amount of ${amountToSend} has been sent successfully`,
+        data: sendMoney,
+      });
+    }
   } catch (error: any) {
     console.log(error);
     return res
@@ -130,35 +135,6 @@ export async function addMoneyToAcct(req: CustomRequest, res: Response) {
       .json({ success: false, errorMessage: error.message });
   }
 }
-
-// export async function addMoneyToAcct(req: Request, res: Response) {
-//     try {
-//       const user = await db('users').select().where(req.user);
-//       if(!user) {
-//           return res.send('No user found')
-//       }
-//       const {amountToSend, accountNumber} = req.body;
-
-//       const userInfo = await db('users').where({'id': user.id, 'account_number': accountNumber });
-//       if(!userInfo) {
-//           return res.status(400).json({success: false, errorMessage: "User account doesn't exist"})
-//       }
-//       console.log('>>>>userinfo', userInfo)
-//       const sendMoney = await db('users').insert(
-//           {
-//             amount: amountToSend,
-//             senderId: user.id,
-//             balance:   userInfo.balance + amountToSend,
-//             sender_name: `${user.first_name} ${user.last_name}`,
-//             account_number: userInfo.account_number
-//         });
-//         return res.status(200).json({ success: true, message: `An amount of ${amountToSend} has been sent successfully`, data: sendMoney })
-//     }catch(error: any) {
-//         return res
-//       .status(500)
-//       .json({ success: false, errorMessage: error.message });
-//     }
-// }
 
 export async function sendMoneyToAnotherAccount(
   req: CustomRequest,
@@ -170,18 +146,21 @@ export async function sendMoneyToAnotherAccount(
     }
     const { amountToSend, accountNumber } = req.body;
 
-    const sender = await db.from("users").first("id", req.user);
-    if (sender.balance < amountToSend) {
+    const sender = await db.from("users").where("id", req.user.id).first();
+    if (sender.balance <= amountToSend) {
       return res
         .status(400)
         .json({ success: false, errorMessage: "Insufficient fund!" });
     }
 
-    const acctInfo = await db("users").first({
-      id: req.params.id,
-      account_number: accountNumber,
-    });
-    if (!acctInfo) {
+    const acctInfo = await db("users")
+      .where({
+        id: req.params.id,
+        account_number: accountNumber,
+      })
+      .first();
+    console.log(">>>>>", acctInfo);
+    if (!acctInfo.id || !acctInfo.account_number) {
       return res.status(400).json({
         success: false,
         errorMessage:
@@ -189,10 +168,14 @@ export async function sendMoneyToAnotherAccount(
       });
     }
     const sendMoney = await db("accounts").insert({
-      amount: amountToSend,
+      id: uuidv4(),
       userId: acctInfo.id,
-      balance: acctInfo.balance + amountToSend,
+      amount: amountToSend,
       senderId: sender.id,
+    });
+    await db("users").update({
+      id: req.user.id,
+      balance: acctInfo.balance + amountToSend,
     });
     return res.status(200).json({
       success: true,
@@ -200,6 +183,7 @@ export async function sendMoneyToAnotherAccount(
       data: sendMoney,
     });
   } catch (error: any) {
+    console.log(error);
     return res
       .status(500)
       .json({ success: false, errorMessage: error.message });

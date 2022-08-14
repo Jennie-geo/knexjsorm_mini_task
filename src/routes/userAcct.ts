@@ -13,7 +13,7 @@ import { authlogin } from "../middleware/authlogin copy";
 router.post("/account/createa-acct", createUser);
 router.post("/account/login", loginUser);
 router.post("/account/credit-user-account", authlogin, addMoneyToAcct);
-router.post("/account/cash-transfer", authlogin, sendMoneyToAnotherAccount);
+router.post("/account/cash-transfer/:id", authlogin, sendMoneyToAnotherAccount);
 router.post("/account/cash-withdraw", authlogin, withdrawAmount);
 
 export default router;
