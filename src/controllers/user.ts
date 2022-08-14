@@ -151,13 +151,13 @@ export async function sendMoneyToAnotherAccount(
         .status(400)
         .json({ success: false, errorMessage: "Insufficient fund!" });
     }
+    const receiver = await db("users").where("id", req.params.id).first();
 
-    const acctInfo = await db("users")
-      .where({ id: req.params.id })
-      .first("account_number", accountNumber);
+    console.log("Receiver", receiver);
+    console.log("receiver.account_number", receiver.account_number);
+    console.log("account_number", accountNumber);
 
-    console.log("acctInfo", acctInfo);
-    if (!acctInfo.id || !acctInfo.account_number) {
+    if (!receiver || receiver.account_number !== accountNumber) {
       return res.status(400).json({
         success: false,
         errorMessage:
@@ -166,19 +166,19 @@ export async function sendMoneyToAnotherAccount(
     }
     const sendMoney = await db("accounts").insert({
       id: uuidv4(),
-      userId: acctInfo.id,
+      userId: receiver.id,
       amount: amountToSend,
       senderId: sender.id,
     });
     await db("users")
-      .where("id", req.user.id)
+      .where("id", sender.id)
       .update({
-        balance: acctInfo.balance - amountToSend,
+        balance: sender.balance - amountToSend,
       });
     await db("users")
-      .where("id", acctInfo.id)
+      .where("id", receiver.id)
       .update({
-        balance: acctInfo.balance + amountToSend,
+        balance: receiver.balance + amountToSend,
       });
     return res.status(200).json({
       success: true,
@@ -200,7 +200,6 @@ export async function withdrawAmount(req: CustomRequest, res: Response) {
     }
 
     const { amount, accountNumber } = req.body;
-    //console.log(">>>>>", amount, accountNumber);
     const acctInfo = await db("users")
       .select()
       .where("id", req.user.id)
@@ -245,6 +244,26 @@ export async function allusers(req: Request, res: Response) {
       .select()
       .then((users) => {
         res.status(200).json({ success: true, data: users });
+      });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ success: false, errorMessage: error.message });
+  }
+}
+
+export async function singleUserAcct(req: Request, res: Response) {
+  try {
+    db("users")
+      .select()
+      .where("id", req.params.id)
+      .then(function (user) {
+        return res.status(200).json({ success: true, message: user });
+      })
+      .catch((error) => {
+        return res
+          .status(400)
+          .json({ success: false, errorMessage: "No user with id exist" });
       });
   } catch (error: any) {
     return res

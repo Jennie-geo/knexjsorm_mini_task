@@ -3,6 +3,7 @@ const router = express.Router();
 
 import {
   allusers,
+  singleUserAcct,
   createUser,
   loginUser,
   addMoneyToAcct,
@@ -12,6 +13,7 @@ import {
 import { authlogin } from "../middleware/authlogin copy";
 
 router.get("/account/allusers", allusers);
+router.get("/account/singleuser/:id", singleUserAcct);
 router.post("/account/createa-acct", createUser);
 router.post("/account/login", loginUser);
 router.post("/account/credit-user-account", authlogin, addMoneyToAcct);
