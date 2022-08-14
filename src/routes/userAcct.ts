@@ -2,6 +2,7 @@ import express from "express";
 const router = express.Router();
 
 import {
+  allusers,
   createUser,
   loginUser,
   addMoneyToAcct,
@@ -10,6 +11,7 @@ import {
 } from "../controllers/user";
 import { authlogin } from "../middleware/authlogin copy";
 
+router.get("/account/allusers", allusers);
 router.post("/account/createa-acct", createUser);
 router.post("/account/login", loginUser);
 router.post("/account/credit-user-account", authlogin, addMoneyToAcct);
